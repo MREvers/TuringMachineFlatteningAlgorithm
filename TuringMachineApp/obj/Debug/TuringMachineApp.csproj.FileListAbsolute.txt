@@ -1,0 +1,15 @@
+c:\users\matthew\documents\visual studio 2015\Projects\TuringMachineApp\TuringMachineApp\bin\Debug\TuringMachineApp.exe.config
+c:\users\matthew\documents\visual studio 2015\Projects\TuringMachineApp\TuringMachineApp\bin\Debug\TuringMachineApp.exe
+c:\users\matthew\documents\visual studio 2015\Projects\TuringMachineApp\TuringMachineApp\bin\Debug\TuringMachineApp.pdb
+c:\users\matthew\documents\visual studio 2015\Projects\TuringMachineApp\TuringMachineApp\obj\Debug\TuringMachineApp.csprojResolveAssemblyReference.cache
+c:\users\matthew\documents\visual studio 2015\Projects\TuringMachineApp\TuringMachineApp\obj\Debug\TuringMachineApp.exe
+c:\users\matthew\documents\visual studio 2015\Projects\TuringMachineApp\TuringMachineApp\obj\Debug\TuringMachineApp.pdb
+C:\Users\Matthew\Documents\Visual Studio 2015\Projects\TuringMachineFlattener\TuringMachineApp\bin\Debug\TuringMachineApp.exe.config
+C:\Users\Matthew\Documents\Visual Studio 2015\Projects\TuringMachineFlattener\TuringMachineApp\obj\Debug\TuringMachineApp.exe
+C:\Users\Matthew\Documents\Visual Studio 2015\Projects\TuringMachineFlattener\TuringMachineApp\obj\Debug\TuringMachineApp.pdb
+C:\Users\Matthew\Documents\Visual Studio 2015\Projects\TuringMachineFlattener\TuringMachineApp\bin\Debug\TuringMachineApp.exe
+C:\Users\Matthew\Documents\Visual Studio 2015\Projects\TuringMachineFlattener\TuringMachineApp\bin\Debug\TuringMachineApp.pdb
+C:\Users\Matthew\Documents\Visual Studio 2015\Projects\TuringMachineFlattener\TuringMachineApp\obj\Debug\TuringMachineApp.csprojResolveAssemblyReference.cache
+C:\Users\Matthew\Documents\GitHub\TuringMachineFlattener\TuringMachineApp\bin\Debug\TuringMachineApp.exe.config
+C:\Users\Matthew\Documents\GitHub\TuringMachineFlattener\TuringMachineApp\obj\Debug\TuringMachineApp.exe
+C:\Users\Matthew\Documents\GitHub\TuringMachineFlattener\TuringMachineApp\obj\Debug\TuringMachineApp.pdb
