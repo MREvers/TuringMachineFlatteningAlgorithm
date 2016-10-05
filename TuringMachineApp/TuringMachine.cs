@@ -41,19 +41,6 @@ namespace TuringMachineApp
 
         public List<TransitionFunction> TransitionFunctions = new List<TransitionFunction>();
 
-        /*
-        static Dictionary<string, string> SymMap = new Dictionary<string, string>()
-        {
-            {"1","i"},
-            {"0","o"},
-            {"#","H"},
-            {"_","B"},
-            {"|","V" }
-            
-        };
-        */
-
-
         static string SZMOVE_RIGHT = ">";
         static string SZMOVE_LEFT = "<";
         static string SZSTAY = "-";
@@ -62,7 +49,6 @@ namespace TuringMachineApp
         static string RETURN_SYMBOL = "R";
         static string NULL_SYMBOL = "~";
        
-
         public void GetInput(string fileName)
         {
             System.IO.StreamReader file =
@@ -195,506 +181,6 @@ namespace TuringMachineApp
             CompileOutputTFs(ref doc, OutputTFs);
         }
 
-        public void Flatten2(ref string doc)
-        {
-            TuringMachine tm = this;
-
-            int NUM_TAPES = tm.TransitionFunctions.First().DomainHeadValues.Count;
-            List<string> TapeLibrary = GetTapeLibrary();
-            TapeLibrary.Add("#");
-
-            List<string> NonHeaderLibrary = TapeLibrary.ToList();
-            List<string> HeaderLibrary = NonHeaderLibrary.Select(x => SymMap[x]).ToList();
-            TapeLibrary.Add("B");
-            HeaderLibrary.Add("B");
-            
-
-            // Get the mkStates.
-            List<State> mkStates = GetStates();
-
-            // Record the Final States
-            List<State> OutputStates = new List<State>();
-
-            // Record the Final Transition Functions
-            List<TransitionFunction> OutputTFs = new List<TransitionFunction>();
-
-            //Build states until each mkstate can be uniquely determined.
-            foreach(State mkState in mkStates)
-            {
-                // Get a determined state for each TF branching from mkState.
-                #region TF Determination
-
-                // TRACK determined states 
-                // These states uniquely determine which TF operation should be carried out.
-                List<DeterminedState> determinedStates = new List<DeterminedState>();
-
-                #region Determine and Build 1,2,...,n Parameter Branching States and TFs from this mkState.
-                // First we need to find the appropriate state parameters.
-                // Look at all the transition function that operate on state
-                //  to find all combinations of parms.
-                #region Determine Possible Parameters from TransitionFunctions that Branch from the mkState
-                List<TransitionFunction> mkStateTFs = new List<TransitionFunction>();
-                foreach (TransitionFunction tf in tm.TransitionFunctions)
-                {
-                    if (tf.DomainState.Actual == mkState.Actual)
-                    {
-                        mkStateTFs.Add(tf);
-                    }
-                }
-                #endregion
-
-                // Second, we need to construct all state permutations.
-                // Duplicates may occur here so they need to be checked later.
-                // This basically FLATTENS a TF.
-                #region Construct the States and TFs that Correspond to each TF and...
-                // ...and transition functions that move each permutation state right until
-                //  the next head symbol.
-                List<State> permutationStates = new List<State>(); // This needs to be filtered later.
-                List<TransitionFunction> permState_MoveAndTransToNext_TransitionFunctions = new List<TransitionFunction>(); // This needs to be filtered later.
-                foreach(TransitionFunction matchedTF in mkStateTFs)
-                {
-                    for (int i = 0; i <= NUM_TAPES; i++)
-                    {
-                        State permState;
-
-                        #region Build the States
-                        if (i == 0)
-                        {
-                            permState = new State(mkState.Actual, mkState);
-                        }
-                        else
-                        {
-                            // If a transition function takes in (q1, 1, 0); then this will generate state q1io 
-                            permState = new State(matchedTF.DomainState.Actual);
-                            for (int k = 0; k < i; k++)
-                            {
-                                string headSymbol = SymMap[matchedTF.DomainHeadValues[k]];
-                                permState = new State(
-                                   permState.Actual + headSymbol,
-                                   permState,
-                                   headSymbol);
-                            }
-                            permutationStates.Add(permState);
-                        }
-                        #endregion
-
-                        #region Build the TFs that Move Each 'permState' to the Next. Does Not Transition To NEXT nor DETERMINED N.
-                        // If the 'permState' uniquely determines an mkTF, 
-                        //  include it in determined states as well.
-
-                        // Each permState will continue right until a Header Char.
-                        foreach(string nonheader in NonHeaderLibrary)
-                        {
-                            TransitionFunction permState_MoveToNext = new TransitionFunction(
-                                permState.Actual, nonheader);
-                            permState_MoveToNext.DefineRange(permState.Actual, nonheader, SZMOVE_RIGHT);
-                            permState_MoveAndTransToNext_TransitionFunctions.Add(permState_MoveToNext);
-                        }
-                        #endregion
-
-                        #region Build TFs that Transition each 'permState' to NEXT. If last permState, skip this.
-                        // Find all the transition functions that correspond to the permState.
-                        // Build all the tfs that transition to the next restrictive permState.
-
-                        if (i < NUM_TAPES)
-                        {
-                            // e.g. mkTFs (q1,0,1) and (q1,0,0), match q1o. So 1, and 0, are potential
-                            //  transition parameters.
-                            List<TransitionFunction> potentialPermStates = GetPossibleTFs(permState);
-                            foreach (TransitionFunction permMatchedTF in potentialPermStates)
-                            {
-                                string permMatchedPotentialChar = permMatchedTF.DomainHeadValues[i];
-                             
-                                TransitionFunction permState_TransitToNext = new TransitionFunction(
-                                    permState.Actual, SymMap[permMatchedPotentialChar]);
-                                string szNextState = permState.Actual + SymMap[permMatchedPotentialChar];
-                                permState_TransitToNext.DefineRange(szNextState, SymMap[permMatchedPotentialChar], SZMOVE_RIGHT);
-                                permState_MoveAndTransToNext_TransitionFunctions.Add(permState_TransitToNext);
-
-                                // Branch on _
-                                if (permMatchedPotentialChar == "_")
-                                {
-                                    TransitionFunction permState_TransitToNextBranch = new TransitionFunction(
-                                        permState.Actual, SymMap["#"]);
-                                    string szNextState2 = permState.Actual + SymMap["_"];
-                                    permState_TransitToNextBranch.DefineRange(szNextState2, SymMap["#"], SZMOVE_RIGHT);
-                                    permState_MoveAndTransToNext_TransitionFunctions.Add(permState_TransitToNextBranch);
-                                }
-                                
-                            }
-                        }
-                        #endregion
-
-                        #region If last, build TF that Transition determined 'permState' to the DETERMINED N state. Determined n state is q(y...y)n and...
-                        // ...additionaly, replace the state with a DeterminedState.
-                        if (i == NUM_TAPES)
-                        {
-
-                            TransitionFunction permState_TransitToNext = new TransitionFunction(
-                                permState.Actual, END_SYMBOL);
-                            string szNextState = permState.Actual + i;
-                            permState_TransitToNext.DefineRange(szNextState, END_SYMBOL, SZMOVE_LEFT);
-
-                            permState_MoveAndTransToNext_TransitionFunctions.Add(permState_TransitToNext);
-
-                            DeterminedState determinedPermState = new DeterminedState(permState.Actual, permState, matchedTF);
-                            determinedStates.Add(determinedPermState);
-
-                        }
-                        #endregion
-                    }
-                }
-                #endregion
-
-                #region Filter Possible Duplicates from PermStates
-                foreach(State state in permutationStates)
-                {
-                    if (OutputStates.Where(x => x.Actual == state.Actual).Count() == 0)
-                    {
-                        OutputStates.Add(state);
-                    }
-                }
-
-                foreach (TransitionFunction intTF in permState_MoveAndTransToNext_TransitionFunctions)
-                {
-
-                    bool found = false;
-                    foreach (TransitionFunction hasTf in OutputTFs)
-                    {
-                        found |= CompareTFs(intTF, hasTf);
-                    }
-                    if (!found)
-                    {
-                        OutputTFs.Add(intTF);
-                    }
-
-                }
-
-                #endregion
-
-                #endregion
-
-                #endregion
-
-                // Build states and TFs needed to carry out TF.
-                #region TF Perform
-                List<State> performStates = new List<State>();
-                List<TransitionFunction> performTransitions = new List<TransitionFunction>();
-                foreach (DeterminedState dstate in determinedStates)
-                {
-                    // Since each dstate is unique, states and tfs can be added immediately.
-                    #region Build Each Determined N State's n Transitions, PerformWrite, and PerformMove States and TFs
-                    for(int i = 1; i <= NUM_TAPES; i++)
-                    {
-                        #region Build Determined Nth Write State, and Determined nth Move Head State.
-                        DeterminedState dstateNthTape = new DeterminedState(
-                            dstate.Actual + i,
-                            dstate,
-                            dstate.TF,
-                            (i).ToString());
-                        performStates.Add(dstateNthTape);
-
-                        DeterminedState dstateNthTape_MoveHead = new DeterminedState(
-                            dstateNthTape.Actual + "a",
-                            dstateNthTape,
-                            dstateNthTape.TF,
-                            ("a").ToString());
-                        performStates.Add(dstateNthTape_MoveHead);
-                        #endregion
-
-                        #region Build Transition Functions that Move to Previous Head Symbol.
-                        foreach (string nonheadSymbol in NonHeaderLibrary)
-                        {
-                            TransitionFunction determinedNState_MoveToPrevious = new TransitionFunction(
-                                        dstateNthTape.Actual, nonheadSymbol);
-                           
-                            determinedNState_MoveToPrevious.DefineRange(
-                                dstateNthTape.Actual, nonheadSymbol, SZMOVE_LEFT);
-
-                            performTransitions.Add(determinedNState_MoveToPrevious);
-                        }
-                        #endregion
-
-                        #region Build Transition Functions that Perform the Write.
-                        string NthParameterOfDeterminedState = dstateNthTape.SubScripts[i-1];
-                        TransitionFunction determinedNState_FoundPreviousAndWrite = new TransitionFunction(
-                                    dstateNthTape.Actual, NthParameterOfDeterminedState);
-
-                        string NthTapeTransitionWrite = dstateNthTape_MoveHead.TF.RangeHeadWrite[i-1];
-                        string NthTapeTransitionMove = dstateNthTape_MoveHead.TF.RangeHeadMove[i-1];
-                        if (NthTapeTransitionMove != SZSTAY)
-                        {
-                            determinedNState_FoundPreviousAndWrite.DefineRange(
-                                dstateNthTape_MoveHead.Actual, NthTapeTransitionWrite, NthTapeTransitionMove);
-                        }
-                        else
-                        {
-                            if (i > 1)
-                            {
-                                determinedNState_FoundPreviousAndWrite.DefineRange(
-                                dstate.Actual + (i - 1), SymMap[NthTapeTransitionWrite], SZMOVE_LEFT);
-                            }
-                            else
-                            {
-                                determinedNState_FoundPreviousAndWrite.DefineRange(
-                                dstate.Actual + "F", SymMap[NthTapeTransitionWrite], SZMOVE_LEFT);
-                            }
-                        }
-
-                        performTransitions.Add(determinedNState_FoundPreviousAndWrite);
-                        #endregion
-
-                        #region If Write On Blank, Branch into Shift All Right Procedure.
-                        // "H"
-                        if (NthParameterOfDeterminedState == SymMap["_"] && NthTapeTransitionWrite != "_")
-                        {
-                            // Build the return to proc shift state
-                            DeterminedState dstateNthTape_ReturnToProc = new DeterminedState(
-                                dstateNthTape + "S" + RETURN_SYMBOL,
-                                dstateNthTape,
-                                dstateNthTape.TF,
-                                RETURN_SYMBOL);
-                                
-                            #region Build Transition to Branch Transition Function
-                            TransitionFunction determinedNState_BranchOnPound = new TransitionFunction(
-                                dstateNthTape.Actual, SymMap["#"]);
-                            determinedNState_BranchOnPound.DefineRange(
-                                dstateNthTape.Actual + "S" + "#", RETURN_SYMBOL, SZMOVE_RIGHT);
-                            performTransitions.Add(determinedNState_BranchOnPound);
-                            #endregion
-
-                            #region Build Shift Right TFs and Shift States
-                            foreach (string anySymbol in TapeLibrary.Concat(new List<string>() { END_SYMBOL }))
-                            {
-                                string sourceState = dstateNthTape.Actual + "S" + anySymbol;
-                                DeterminedState dstateNthTape_ShiftRightState = new DeterminedState(
-                                            sourceState,
-                                            dstateNthTape,
-                                            dstateNthTape.TF,
-                                            anySymbol);
-                                performStates.Add(dstateNthTape_ShiftRightState);
-                            }
-
-                            var TPLWD = TapeLibrary.ToList().Concat(new List<string>() { END_SYMBOL });
-                            foreach (string anySymbol in TapeLibrary)
-                            {
-                                foreach (string targetSymbol in TPLWD)
-                                {
-                                    // (q#, $) --> (q$, #, R)
-                                    if ((targetSymbol == END_SYMBOL && anySymbol == "#") ||
-                                        (targetSymbol != END_SYMBOL))
-                                    {
-                                        string sourceState = dstateNthTape.Actual + "S" + anySymbol;
-                                        TransitionFunction dstateNthTape_ShiftRight = new TransitionFunction(
-                                            sourceState, targetSymbol);
-
-                                        string targetState = dstateNthTape.Actual + "S" + targetSymbol;
-                                        dstateNthTape_ShiftRight.DefineRange(
-                                            targetState, anySymbol, SZMOVE_RIGHT);
-
-                                        performTransitions.Add(dstateNthTape_ShiftRight);
-
-                                    }
-                                        
-                                }
-                            }
-                            #endregion
-
-                            #region Build Found End Shift Transition To (Move To Return to Proc) State.
-                            TransitionFunction dstateNthTape_ShiftFoundEnd = new TransitionFunction(
-                                dstateNthTape.Actual + "S" + END_SYMBOL, "_");
-
-                            dstateNthTape_ShiftFoundEnd.DefineRange(
-                                dstateNthTape.Actual + "S" + RETURN_SYMBOL, END_SYMBOL, SZMOVE_LEFT);
-                            performTransitions.Add(dstateNthTape_ShiftFoundEnd);
-                            #endregion
-
-                            #region Build Move To Return to Proc TFs and Transition to Proc
-                            foreach(string anySymbol in TapeLibrary)
-                            {
-                                    
-                                TransitionFunction dstateNthTape_ReturnToProcedure = new TransitionFunction(
-                                    dstateNthTape.Actual + "S" + RETURN_SYMBOL, anySymbol);
-
-                                dstateNthTape_ReturnToProcedure.DefineRange(
-                                    dstateNthTape.Actual + "S" + RETURN_SYMBOL, anySymbol, SZMOVE_LEFT);
-                                performTransitions.Add(dstateNthTape_ReturnToProcedure);
-                                    
-                            }
-
-                            TransitionFunction dstateNthTape_TransitionToProcedure = new TransitionFunction(
-                                    dstateNthTape.Actual + "S" + RETURN_SYMBOL, RETURN_SYMBOL);
-
-                            dstateNthTape_TransitionToProcedure.DefineRange(
-                                dstateNthTape.Actual, SymMap["_"], SZSTAY);
-                            performTransitions.Add(dstateNthTape_TransitionToProcedure);
-                            #endregion
-                        }
-                        else if (NthParameterOfDeterminedState == SymMap["_"] && NthTapeTransitionWrite == "_")
-                        {
-                            string NthParameterOfDeterminedStateBranchOnBlank = SymMap["#"];
-                            TransitionFunction determinedNState_FoundPreviousAndWriteBranchOnBlank = new TransitionFunction(
-                                        dstateNthTape.Actual, NthParameterOfDeterminedStateBranchOnBlank);
-
-                            string NthTapeTransitionMoveBranchOnBlank = dstateNthTape_MoveHead.TF.RangeHeadMove[i - 1];
-                            if (NthTapeTransitionMoveBranchOnBlank != SZSTAY)
-                            {
-                                determinedNState_FoundPreviousAndWriteBranchOnBlank.DefineRange(
-                                    dstateNthTape_MoveHead.Actual, "#", NthTapeTransitionMoveBranchOnBlank);
-                            }
-                            else
-                            {
-                                if (i > 1)
-                                {
-                                    determinedNState_FoundPreviousAndWriteBranchOnBlank.DefineRange(
-                                   dstate.Actual + (i - 1), SymMap["#"], SZMOVE_LEFT);
-                                }
-                                else
-                                {
-                                    determinedNState_FoundPreviousAndWriteBranchOnBlank.DefineRange(
-                                    dstate.Actual + "F", SymMap["#"], SZMOVE_LEFT);
-                                }
-                                
-  
-                            }
-                  
-                            performTransitions.Add(determinedNState_FoundPreviousAndWriteBranchOnBlank);
-                        }
-                        #endregion
-
-                        #region Build Transition Functions That Perform the Head Move.
-                        if (NthTapeTransitionMove != SZSTAY)
-                        {
-                            if (i > 1)
-                            {
-                                foreach (string character in NonHeaderLibrary)
-                                {
-                                    // Exclude this combination because the head has moved before the beginning of the tape.
-                                    if (!(character == "#" && dstateNthTape_MoveHead.TF.RangeHeadMove[i - 1] == SZMOVE_LEFT))
-                                    {
-                                        TransitionFunction determinedNState_MoveHead = new TransitionFunction(
-                                                dstateNthTape_MoveHead.Actual, character);
-                                        determinedNState_MoveHead.DefineRange(
-                                            dstate.Actual + (i - 1), SymMap[character], SZMOVE_LEFT);
-                                        performTransitions.Add(determinedNState_MoveHead);
-                                    }
-                                    
-                                }
-                            }
-                            else
-                            {
-                                foreach (string character in NonHeaderLibrary)
-                                {
-                                    // Exclude this combination because the head has moved before the beginning of the tape.
-                                    if (!(character == "#" && dstateNthTape_MoveHead.TF.RangeHeadMove[i - 1] == SZMOVE_LEFT))
-                                    {
-                                        TransitionFunction determinedNState_MoveHead = new TransitionFunction(
-                                                dstateNthTape_MoveHead.Actual, character);
-                                        determinedNState_MoveHead.DefineRange(
-                                            dstate.Actual + "F", SymMap[character], SZMOVE_LEFT);
-                                        performTransitions.Add(determinedNState_MoveHead);
-                                    }
-                                }
-                            }
-                        }
-                        #endregion
-
-                    }
-                    #endregion
-
-                    #region Build State that Signifies the Corresponding mkTF is complete and...
-                    // ...the transition functions that return to the beginning of the tape.
-                    // Then Transition to next mkTF.
-
-                    #region Build State that Signifies Completion
-                    DeterminedState permStateCompleted = new DeterminedState(
-                        dstate.Actual + "F", dstate, dstate.TF, "F");
-                    performStates.Add(permStateCompleted);
-                    #endregion
-
-                    #region Build the TFs that Move to Beginning of Tape. Does NOT Transit to Next State.
-                    foreach(string character in TapeLibrary.Where(x => x != "#"))
-                    {
-                        TransitionFunction completeState_MoveToBegin = new TransitionFunction(
-                            permStateCompleted.Actual, character);
-                        completeState_MoveToBegin.DefineRange(permStateCompleted.Actual, character, SZMOVE_LEFT);
-                        performTransitions.Add(completeState_MoveToBegin);
-                    }
-                    #endregion
-
-                    #region Build the TF that TRANSITS to NEXT mkTF
-                    TransitionFunction completeState_TransitToNext = new TransitionFunction(
-                        permStateCompleted.Actual, "#");
-                    completeState_TransitToNext.DefineRange(
-                        permStateCompleted.TF.RangeState.Actual,
-                        "#",
-                        SZMOVE_RIGHT);
-                    performTransitions.Add(completeState_TransitToNext);
-                    #endregion
-
-                    #endregion 
-
-                }
-
-                #region Filter Possible Duplicates from PermStates
-                foreach (State state in performStates)
-                {
-                    if (OutputStates.Where(x => x.Actual == state.Actual).Count() == 0)
-                    {
-                        OutputStates.Add(state);
-                    }
-                }
-
-                foreach (TransitionFunction intTF in performTransitions)
-                {
-
-                    bool found = false;
-                    foreach (TransitionFunction hasTf in OutputTFs)
-                    {
-                        found |= CompareTFs(intTF, hasTf);
-                    }
-                    if (!found)
-                    {
-                        OutputTFs.Add(intTF);
-                    }
-
-                }
-
-                #endregion
-                #endregion
-
-            }
-
-            #region OutPut
-            //string doc = "";
-
-
-            CompileOutputTFs(ref doc, OutputTFs);
-            foreach (TransitionFunction tf in OutputTFs)
-            {
-                string output = tf.DomainState.Actual + ":";
-                foreach (string sz in tf.DomainHeadValues)
-                {
-                    output += "," + sz;
-                }
-                output += " ----> ";
-                output += tf.RangeState.Actual;
-                foreach (string sz in tf.RangeHeadWrite)
-                {
-                    output += " ," + sz;
-                }
-                output += ": (";
-                foreach (string sz in tf.RangeHeadMove)
-                {
-                    output += ", " + sz;
-                }
-                output += ")";
-                Console.WriteLine(output);
-            }
-            
-            #endregion
-        }
-
         /// <summary>
         /// For the philosophy of this algorith, see sipser.
         /// </summary>
@@ -754,21 +240,9 @@ namespace TuringMachineApp
                     E_BuildTransitionFunctions_Undetermined_XthParm_FoundNextChangeToNextState(undeterminedStates);
                 tmp = tmp.Concat(undeterminedStates_TransitionFunction_XthParm_FoundNextChangeToNextI);
 
-                /*
-                IEnumerable<TransitionFunction> determinedStates_TransitionFunction_MoveToEndI =
-                    E_BuildTransitionFunctions_Determined_MoveToEnd(determinedStates, NonHeaderLibrary);
-                tmp = tmp.Concat(determinedStates_TransitionFunction_MoveToEndI);
-                */
-
                 IEnumerable<TransitionFunction> determinedStates_TransitionFunction_ChangeToActionStates =
                     E_BuildTransitionFunctions_Determined_BeginActionStates(determinedStates, NonHeaderLibrary);
                 tmp = tmp.Concat(determinedStates_TransitionFunction_ChangeToActionStates);
-
-                /*
-                IEnumerable<TransitionFunction> determinedStates_TransitionFunction_FoundEndChangeToNextStateI =
-                    E__BuildTransitionFunctions_Determined_FoundEndChangeToActorState_N(determinedStates).ToList();
-                tmp = tmp.Concat(determinedStates_TransitionFunction_FoundEndChangeToNextStateI);
-                */
 
                 IEnumerable<TransitionFunction> determinedStates_TransitionFunction_ActorState_N_MoveToPreviousAndWrite =
                     E_BuildTransitionFunctions_Determined_ActorState_N_MoveToPrevious(
@@ -787,25 +261,11 @@ namespace TuringMachineApp
                         NonHeaderLibrary);
                 tmp = tmp.Concat(determinedState_TransitionFunction_ActorState_N_MoveHeadThenChangeToNLess1MoveToPrevious);
 
-                /*
-                IEnumerable<TransitionFunction> determinedState_TransitionFunction_ActorState_0F_MoveToBeginning =
-                    E_BuildTransitionFunctions_Determined_ActorState_0F_MoveToBeginning(
-                        determinedStates_ActorStates_0F_Complete,
-                        TapeLibrary);
-                */
                 IEnumerable<TransitionFunction> determinedState_TransitionFunction_ActorState_0F_MoveToBeginning =
                     E_BuildTransitionFunctions_Determined_ActorState_0F_ChangeToNext(
                         determinedStates_ActorStates_0F_Complete,
                         TapeLibrary);
                 tmp = tmp.Concat(determinedState_TransitionFunction_ActorState_0F_MoveToBeginning);
-
-                /*
-                IEnumerable<TransitionFunction> determinedState_TransitionFunction_ActorState_0F_FoundBeginningChangeToNextMKState =
-                    E_BuildTransitionFunctions_Determined_ActorState_0F_FoundBeginningChangeToNextMKState(
-                        determinedStates_ActorStates_0F_Complete);
-                tmp = tmp.Concat(determinedState_TransitionFunction_ActorState_0F_FoundBeginningChangeToNextMKState);
-                */
-                
 
                OutputTFs = OutputTFs.Concat(tmp).Distinct();
 
@@ -825,7 +285,8 @@ namespace TuringMachineApp
             #endregion Iterate of States Of Multitape Machine Mk
         }
 
-        private IEnumerable<TransitionFunction> E_GetMKTransitionFunctionsSuchThat_State_(
+        private IEnumerable<TransitionFunction> 
+            E_GetMKTransitionFunctionsSuchThat_State_(
             State state)
         {
             foreach (TransitionFunction tf in this.TransitionFunctions)
@@ -837,7 +298,24 @@ namespace TuringMachineApp
             }
         }
 
-        private IEnumerable<State> E_BuildUnderterminedStates(
+        #region States
+
+        /// <summary>
+        /// Builds up all the undetermined states beginning from the 'basestate'
+        ///  based on the provided transition functions. This does not include
+        ///  states that map uniquely to the domain of a TF.
+        /// E.G.
+        /// baseState := 'q1'
+        /// TF := q1,_,1,_ -> xxx
+        /// 
+        /// Yields states q1_, and q1_1
+        /// NOT q1_1_
+        /// </summary>
+        /// <param name="baseState">State that maps to equivalent mKState</param>
+        /// <param name="determiningTFs">Transition Functions from the mKTFs that begin at 'baseState'</param>
+        /// <returns></returns>
+        private IEnumerable<State> 
+            E_BuildUnderterminedStates(
             State baseState,
             IEnumerable<TransitionFunction> determiningTFs)
         {
@@ -870,7 +348,20 @@ namespace TuringMachineApp
             }
         }
 
-        private IEnumerable<DeterminedState> E_BuildDeterminedStates(
+        /// <summary>
+        /// Builds a unique state that matches the parameters of all
+        ///  transition functions that start from 'baseState'
+        /// E.G.
+        /// baseState := 'q1'
+        /// TF := q1,_,1,_ -> xxx
+        /// 
+        /// Yields q1_1_
+        /// </summary>
+        /// <param name="baseState">State that maps to equivalent mKState</param>
+        /// <param name="determiningTFs">Transition Functions from the mKTFs that begin at 'baseState'</param>
+        /// <returns></returns>
+        private IEnumerable<DeterminedState>
+            E_BuildDeterminedStates(
             State baseState,
             IEnumerable<TransitionFunction> determiningTFs)
         {
@@ -888,12 +379,16 @@ namespace TuringMachineApp
                        headSymbol);
                 }
                 DeterminedState returnState = new DeterminedState(
-                    permState.Actual, permState, matchedTF);
+                    permState.Actual,
+                    permState,
+                    permState.Actual,
+                    matchedTF);
                 yield return returnState;
             }
         }
 
-        private IEnumerable<DeterminedState>E_BuildDeterminedStates_ActorStates_N_Write(
+        private IEnumerable<DeterminedState>
+            E_BuildDeterminedStates_ActorStates_N_Write(
             IEnumerable<DeterminedState> determinedStates)
         {
             int NUM_TAPES = this.TransitionFunctions.First().DomainHeadValues.Count;
@@ -906,6 +401,7 @@ namespace TuringMachineApp
                     DeterminedState dstateNthTape = new DeterminedState(
                         dstate.Actual + i,
                         dstate,
+                        dstate.Actual,
                         dstate.TF,
                         (i).ToString());
                     yield return dstateNthTape;
@@ -913,18 +409,24 @@ namespace TuringMachineApp
             }
         }
 
-        private IEnumerable<DeterminedState> E_BuildDeterminedStates_ActorStates_0F_Complete(
+        private IEnumerable<DeterminedState>
+            E_BuildDeterminedStates_ActorStates_0F_Complete(
             IEnumerable<DeterminedState> determinedStates)
         {
             foreach (DeterminedState dstate in determinedStates)
             {
                 DeterminedState permStateCompleted = new DeterminedState(
-                        dstate.Actual + "F", dstate, dstate.TF, "F");
+                        dstate.Actual + "F",
+                        dstate,
+                        dstate.Actual,
+                        dstate.TF,
+                        "F");
                 yield return permStateCompleted;
             }
         }
 
-        private IEnumerable<DeterminedState> E_BuildDeterminedStates_ActorStates_N_MoveHead(
+        private IEnumerable<DeterminedState> 
+            E_BuildDeterminedStates_ActorStates_N_MoveHead(
             IEnumerable<DeterminedState> determinedStates_ActorStates_Write)
         {
             
@@ -933,13 +435,17 @@ namespace TuringMachineApp
                 DeterminedState dstateNthTape_MoveHead = new DeterminedState(
                         dstateNthTape.Actual + "a",
                         dstateNthTape,
+                        dstateNthTape.BaseState,
                         dstateNthTape.TF,
                         ("a").ToString());
                 yield return dstateNthTape_MoveHead;
             }
         }
 
-        private IEnumerable<TransitionFunction> E_BuildTransitionFunctions_Undetermined_XthParm_MoveToNext(
+        #endregion
+
+        private IEnumerable<TransitionFunction>
+            E_BuildTransitionFunctions_Undetermined_XthParm_MoveToNext(
             IEnumerable<State> undeterminedStates,
             List<string> NonHeaderLibrary)
         {
@@ -958,58 +464,8 @@ namespace TuringMachineApp
 
         }
 
-        private IEnumerable<TransitionFunction> E_BuildTransitionFunctions_Determined_MoveToEnd(
-            IEnumerable<DeterminedState> determinedStates,
-            List<string> NonHeaderLibrary)
-        {
-            foreach (State permState in determinedStates)
-            {
-                foreach (string nonheader in NonHeaderLibrary)
-                {
-                    TransitionFunction permState_MoveToNext = new TransitionFunction(
-                        permState.Actual, nonheader);
-                    permState_MoveToNext.DefineRange(permState.Actual, nonheader, SZMOVE_RIGHT);
-                    yield return permState_MoveToNext;
-                }
-            }
-        }
-
-        //BYPASS MOVE TO END
-        private IEnumerable<TransitionFunction> E_BuildTransitionFunctions_Determined_BeginActionStates(
-            IEnumerable<DeterminedState> determinedStates,
-            List<string> NonHeaderLibrary)
-        {
-            int NUM_TAPES = this.TransitionFunctions.First().DomainHeadValues.Count;
-            foreach (State permState in determinedStates)
-            {
-                foreach (string nonheader in NonHeaderLibrary)
-                {
-                    TransitionFunction permState_MoveToNext = new TransitionFunction(
-                        permState.Actual, nonheader);
-                    permState_MoveToNext.DefineRange(permState.Actual + NUM_TAPES, nonheader, SZSTAY);
-                    yield return permState_MoveToNext;
-                }
-            }
-        }
-
-
-        private IEnumerable<TransitionFunction> E__BuildTransitionFunctions_Determined_FoundEndChangeToActorState_N(
-            IEnumerable<DeterminedState> determinedStates)
-        {
-            int NUM_TAPES = this.TransitionFunctions.First().DomainHeadValues.Count;
-            foreach (State permState in determinedStates)
-            {
-                TransitionFunction permState_TransitToNext = new TransitionFunction(
-                                permState.Actual, END_SYMBOL);
-                string szNextState = permState.Actual + NUM_TAPES;
-                permState_TransitToNext.DefineRange(szNextState, END_SYMBOL, SZMOVE_LEFT);
-
-                yield return permState_TransitToNext;
-            }
-        }
-
-
-        private IEnumerable<TransitionFunction> E_BuildTransitionFunctions_Undetermined_XthParm_FoundNextChangeToNextState(
+        private IEnumerable<TransitionFunction>
+            E_BuildTransitionFunctions_Undetermined_XthParm_FoundNextChangeToNextState(
             IEnumerable<State> undeterminedStates)
         {
             foreach (State permState in undeterminedStates)
@@ -1042,6 +498,23 @@ namespace TuringMachineApp
             }
         }
 
+        private IEnumerable<TransitionFunction>
+        E_BuildTransitionFunctions_Determined_BeginActionStates(
+        IEnumerable<DeterminedState> determinedStates,
+        List<string> NonHeaderLibrary)
+        {
+            int NUM_TAPES = this.TransitionFunctions.First().DomainHeadValues.Count;
+            foreach (State permState in determinedStates)
+            {
+                foreach (string nonheader in NonHeaderLibrary)
+                {
+                    TransitionFunction permState_MoveToNext = new TransitionFunction(
+                        permState.Actual, nonheader);
+                    permState_MoveToNext.DefineRange(permState.Actual + NUM_TAPES, nonheader, SZSTAY);
+                    yield return permState_MoveToNext;
+                }
+            }
+        }
 
         // Does not include 0 or finished
         private IEnumerable<TransitionFunction> E_BuildTransitionFunctions_Determined_ActorState_N_MoveToPrevious(
@@ -1066,7 +539,8 @@ namespace TuringMachineApp
             }
         }
 
-        private IEnumerable<TransitionFunction> E_BuildTransitionFunctions_Determined_ActorState_N_FoundPreviousWriteThenChangeToMoveHeadState(
+        private IEnumerable<TransitionFunction> 
+            E_BuildTransitionFunctions_Determined_ActorState_N_FoundPreviousWriteThenChangeToMoveHeadState(
             IEnumerable<DeterminedState> determinedStates)
         {
             int NUM_TAPES = this.TransitionFunctions.First().DomainHeadValues.Count;
@@ -1210,23 +684,6 @@ namespace TuringMachineApp
             }
         }
 
-        private IEnumerable<TransitionFunction> E_BuildTransitionFunctions_Determined_ActorState_0F_MoveToBeginning(
-            IEnumerable<DeterminedState> determinedStates_ActorStates_0F_Complete,
-            List<string> TapeLibrary)
-        {
-            foreach (DeterminedState permStateCompleted in determinedStates_ActorStates_0F_Complete)
-            {
-                foreach (string character in TapeLibrary.Where(x => x != "#"))
-                {
-                    TransitionFunction completeState_MoveToBegin = new TransitionFunction(
-                        permStateCompleted.Actual, character);
-                    completeState_MoveToBegin.DefineRange(permStateCompleted.Actual, character, SZMOVE_LEFT);
-                    yield return completeState_MoveToBegin;
-                }
-            }
-        }
-
-        // BYPASS 0F MOVE TO BEGINNING
         private IEnumerable<TransitionFunction> E_BuildTransitionFunctions_Determined_ActorState_0F_ChangeToNext(
             IEnumerable<DeterminedState> determinedStates_ActorStates_0F_Complete,
             List<string> TapeLibrary)
@@ -1243,25 +700,13 @@ namespace TuringMachineApp
             }
         }
 
-        private IEnumerable<TransitionFunction> E_BuildTransitionFunctions_Determined_ActorState_0F_FoundBeginningChangeToNextMKState(
-            IEnumerable<DeterminedState> determinedStates_ActorStates_0F_Complete)
-        {
-            foreach (DeterminedState permStateCompleted in determinedStates_ActorStates_0F_Complete)
-            {
-
-                TransitionFunction completeState_TransitToNext = new TransitionFunction(
-                        permStateCompleted.Actual, "#");
-                completeState_TransitToNext.DefineRange(
-                    permStateCompleted.TF.RangeState.Actual,
-                    "#",
-                    SZMOVE_RIGHT);
-                yield return completeState_TransitToNext;
-
-            }
-        }
-
-        // Need the states still
-        // Branches by replaceing on anything that would write on H
+        /// <summary>
+        /// Iterates through a list of 'allTFs' and finds all the states that would write on
+        ///  H (Blank) and inserts a subroutine to shift all characters right.
+        /// </summary>
+        /// <param name="allTFS">List of TFs to check</param>
+        /// <param name="TapeLibrary">List of characters needed to shift right</param>
+        /// <returns></returns>
         private IEnumerable<TransitionFunction> BuildTransitionFunctions_ShiftRight_Branches_And_Remove_Nodes(
             IEnumerable<TransitionFunction> allTFS,
             List<string> TapeLibrary)

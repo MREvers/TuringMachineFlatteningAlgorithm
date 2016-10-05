@@ -8,14 +8,17 @@ namespace TuringMachineApp
 {
     class DeterminedState : State
     {
+        public string BaseState;
         public TransitionFunction TF;
-        public DeterminedState(string actual, TransitionFunction tf, params string[] parms) : base(actual, parms)
+        public DeterminedState(string actual, string basestate, TransitionFunction tf, params string[] parms) : base(actual, parms)
         {
+            BaseState = basestate;
             TF = tf;
         }
 
-        public DeterminedState(string actual, State start, TransitionFunction tf, params string[] parms) : base(actual, start, parms)
+        public DeterminedState(string actual, State start, string basestate, TransitionFunction tf,  params string[] parms) : base(actual, start, parms)
         {
+            BaseState = basestate;
             TF = tf;
         }
     }
