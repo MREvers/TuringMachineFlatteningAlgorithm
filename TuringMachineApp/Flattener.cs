@@ -120,22 +120,19 @@ namespace TuringMachineApp
 
                 OutputTFs = OutputTFs.Concat(tmp).Distinct().ToList();
                 Console.WriteLine("Presafety");
-
-                IEnumerable<TransitionFunction> withBranches = Include_Shift_Right_Safety(
-                     ref OutputTFs,
-                     TapeLibrary);
-                Console.WriteLine("RightSafety");
-
-                IEnumerable<TransitionFunction> withBranchesRH = Include_Shift_Left_Safety_RightHanded(
-                     ref OutputTFs,
-                     TapeLibrary);
-                Console.WriteLine("LeftSafety");
-                
-                
-                
-
-                UnbranchedFinalizedList = withBranches.Concat(withBranchesRH.ToList()).Concat(OutputTFs).Distinct();
             }
+
+            IEnumerable<TransitionFunction> withBranches = Include_Shift_Right_Safety(
+                     ref OutputTFs,
+                     TapeLibrary);
+            Console.WriteLine("RightSafety");
+
+            IEnumerable<TransitionFunction> withBranchesRH = Include_Shift_Left_Safety_RightHanded(
+                 ref OutputTFs,
+                 TapeLibrary);
+            Console.WriteLine("LeftSafety");
+
+            UnbranchedFinalizedList = OutputTFs.Concat(withBranchesRH.ToList()).Concat(withBranches).Distinct();
 
             foreach (TransitionFunction tf in UnbranchedFinalizedList)
             {
@@ -494,14 +491,14 @@ namespace TuringMachineApp
                             foreach (string character in NonHeaderLibrary)
                             {
                                 // Exclude this combination because the head has moved before the beginning of the tape.
-                                if (!(character == "#" && dstate.TF.RangeHeadMove[i - 1] == SZMOVE_LEFT))
-                                {
+                                //if (!(character == "#" && dstate.TF.RangeHeadMove[i - 1] == SZMOVE_LEFT))
+                                //{
                                     TransitionFunction determinedNState_MoveHead = new TransitionFunction(
                                             dstate.Actual + i + "a", character);
                                     determinedNState_MoveHead.DefineRange(
                                         dstate.Actual + (i - 1), SymMap[character], SZMOVE_LEFT);
                                     yield return determinedNState_MoveHead;
-                                }
+                                //}
 
                             }
                         }
@@ -510,14 +507,14 @@ namespace TuringMachineApp
                             foreach (string character in NonHeaderLibrary)
                             {
                                 // Exclude this combination because the head has moved before the beginning of the tape.
-                                if (!(character == "#" && dstate.TF.RangeHeadMove[i - 1] == SZMOVE_LEFT))
-                                {
+                                //if (!(character == "#" && dstate.TF.RangeHeadMove[i - 1] == SZMOVE_LEFT))
+                                //{
                                     TransitionFunction determinedNState_MoveHead = new TransitionFunction(
                                             dstate.Actual + i + "a", character);
                                     determinedNState_MoveHead.DefineRange(
                                         dstate.Actual + "F", SymMap[character], SZSTAY);
                                     yield return determinedNState_MoveHead;
-                                }
+                                //}
                             }
                         }
                     }
@@ -561,7 +558,7 @@ namespace TuringMachineApp
                 {
                     removeTFs.Add(tf);
                     foreach(TransitionFunction btf in Include_Shift_Right_On(
-                        tf.DomainState.Actual, tf.DomainState.Actual, branchOn, TapeLibrary))
+                        tf.DomainState.Actual, tf.DomainState.Actual, true, branchOn, TapeLibrary))
                     {
                         branchTFs.Add(btf);
                     }
@@ -612,7 +609,7 @@ namespace TuringMachineApp
             {
                 foreach(TransitionFunction otf in allTFS)
                 {
-                    if ((otf.DomainState == tf.RangeState) &&
+                    if ((otf.DomainState.Actual == tf.RangeState.Actual) &&
                         (otf.DomainHeadValues[0] == "#") &&
                         (otf.RangeHeadWrite[0] != "#")    )
                     {
@@ -651,8 +648,8 @@ namespace TuringMachineApp
                 }
 
                 List<TransitionFunction> branch
-                    = Include_Shift_Right_On(shiftStartState, returnState, branchStarterPairs, TapeLibrary).ToList();
-
+                    = Include_Shift_Right_On(shiftStartState, startState, false, branchStarterPairs, TapeLibrary).ToList();
+                outputTFs.Add(moveRightTF);
                 outputTFs = outputTFs.Concat(branch).ToList();
             }
 
@@ -663,6 +660,7 @@ namespace TuringMachineApp
         Include_Shift_Right_On(
                     string branchState,
                     string returnState,
+                    bool putHead,
                     Dictionary<string,string> branchStarterPairs, //(from, to)
                     List<string> TapeLibrary)
         {
@@ -732,8 +730,10 @@ namespace TuringMachineApp
             TransitionFunction dstateNthTape_TransitionToProcedure = new TransitionFunction(
                      branchState + "S" + RETURN_SYMBOL, RETURN_SYMBOL);
 
+            // Determines whether or not for the 
+            string puthead = putHead ? SymMap["_"] : "_";
             dstateNthTape_TransitionToProcedure.DefineRange(
-                returnState, SymMap["_"], SZSTAY);
+                returnState, puthead, SZSTAY);
             yield return dstateNthTape_TransitionToProcedure;
             #endregion
         }
