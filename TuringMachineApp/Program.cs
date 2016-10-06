@@ -17,12 +17,14 @@ namespace TuringMachineApp
             TuringMachine tm = new TuringMachine();
             tm.GetInput("Input2.txt");
 
+            Flattener fl = new Flattener(tm);
+
             string doc = "";
             tm.NullInput(ref doc, "~");
-            tm.Flatten3(ref doc);
+            fl.Flatten(ref doc);
             tm.FinalizeOutput(ref doc);
             File.WriteAllText("Output.txt", doc);
-
+            Console.WriteLine("Done");
             Console.ReadLine();
         }
     }

@@ -13,3 +13,6 @@ C:\Users\Matthew\Documents\Visual Studio 2015\Projects\TuringMachineFlattener\Tu
 C:\Users\Matthew\Documents\GitHub\TuringMachineFlattener\TuringMachineApp\bin\Debug\TuringMachineApp.exe.config
 C:\Users\Matthew\Documents\GitHub\TuringMachineFlattener\TuringMachineApp\obj\Debug\TuringMachineApp.exe
 C:\Users\Matthew\Documents\GitHub\TuringMachineFlattener\TuringMachineApp\obj\Debug\TuringMachineApp.pdb
+C:\Users\Matthew\Documents\GitHub\TuringMachineFlattener\TuringMachineApp\bin\Debug\TuringMachineApp.exe
+C:\Users\Matthew\Documents\GitHub\TuringMachineFlattener\TuringMachineApp\bin\Debug\TuringMachineApp.pdb
+C:\Users\Matthew\Documents\GitHub\TuringMachineFlattener\TuringMachineApp\obj\Debug\TuringMachineApp.csprojResolveAssemblyReference.cache
