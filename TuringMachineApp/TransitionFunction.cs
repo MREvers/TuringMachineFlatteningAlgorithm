@@ -52,19 +52,6 @@ namespace TuringMachineApp
             {
                 same &= this.DomainHeadValues[i] == other.DomainHeadValues[i];
             }
-
-            same &= this.RangeState.Actual == other.RangeState.Actual;
-
-            for (int i = 0; i < this.RangeHeadWrite.Count; i++)
-            {
-                same &= this.RangeHeadWrite[i] == other.RangeHeadWrite[i];
-            }
-
-            for (int i = 0; i < this.RangeHeadMove.Count; i++)
-            {
-                same &= this.RangeHeadMove[i] == other.RangeHeadMove[i];
-            }
-
             return same;
         }
 

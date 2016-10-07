@@ -68,7 +68,7 @@ namespace TuringMachineApp
 
             // Record the Final Transition Functions
             List<TransitionFunction> OutputTFs = new List<TransitionFunction>();
-            IEnumerable<TransitionFunction> UnbranchedFinalizedList = null;
+            List<TransitionFunction> UnbranchedFinalizedList = null;
             #endregion Setup
 
             #region Iterate of States Of Multitape Machine Mk
@@ -127,27 +127,35 @@ namespace TuringMachineApp
                         TapeLibrary);
                 tmp = tmp.Concat(determinedState_TransitionFunction_ActorState_0F_MoveToBeginning);
 
-                OutputTFs = OutputTFs.Concat(tmp).Distinct().ToList();
+                OutputTFs = OutputTFs.Concat(tmp).ToList();
+                //UniqueAdd(ref OutputTFs, tmp.ToList());
                 Console.WriteLine("Presafety");
             }
-
-            IEnumerable<TransitionFunction> withBranches = Include_Shift_Right_Safety(
+            Console.WriteLine(OutputTFs.Count());
+            List<TransitionFunction> withBranches = Include_Shift_Right_Safety(
                      ref OutputTFs,
-                     TapeLibrary);
+                     TapeLibrary).ToList();
             Console.WriteLine("RightSafety");
 
-            IEnumerable<TransitionFunction> withBranchesRH = Include_Shift_Left_Safety_RightHanded(
+            List<TransitionFunction> withBranchesRH = Include_Shift_Left_Safety_RightHanded(
                  ref OutputTFs,
-                 TapeLibrary);
+                 TapeLibrary).ToList();
             Console.WriteLine("LeftSafety");
+            Console.WriteLine(withBranchesRH.Count());
+            //UniqueAdd(ref withBranchesRH, withBranches);
 
-            UnbranchedFinalizedList = OutputTFs.Concat(withBranchesRH.ToList()).Concat(withBranches).Distinct();
-
-            foreach (TransitionFunction tf in UnbranchedFinalizedList)
+            //UnbranchedFinalizedList = OutputTFs.Concat(withBranchesRH).ToList();
+            UnbranchedFinalizedList = Unique(OutputTFs.Concat(withBranchesRH).Concat(withBranches).ToList());
+            Console.WriteLine(UnbranchedFinalizedList.Count());
+            for (int i = 0; i < UnbranchedFinalizedList.Count(); i++)
             {
-                doc += tf.ToString();
-                //Console.WriteLine(tf.ToString());
+                doc += UnbranchedFinalizedList[i].ToString();
+                if (i % 100 == 0)
+                {
+                    Console.WriteLine(i + "/" + UnbranchedFinalizedList.Count());
+                }
             }
+
 
             #endregion Iterate of States Of Multitape Machine Mk
         }
@@ -859,6 +867,39 @@ namespace TuringMachineApp
             }
         }
 
+        private List<TransitionFunction> Unique(List<TransitionFunction> lst)
+        {
+            List<TransitionFunction> lstRetVal = new List<TransitionFunction>();
+
+            for (int i = 0; i < lst.Count(); i++)
+            {
+                if (!lstRetVal.Contains(lst[i]))
+                {
+                    lstRetVal.Add(lst[i]);
+                }
+                if (i % 100 == 0)
+                {
+                    Console.WriteLine(i + "/" + lst.Count() + "   " + lstRetVal.Count());
+                }
+            }
+            Console.WriteLine(lst.Count() + "/" + lst.Count() + "   " + lstRetVal.Count());
+
+            return lstRetVal;
+        }
+
+        private void UniqueAdd(ref List<TransitionFunction> lst, List<TransitionFunction> newList)
+        {
+
+            for (int i = 0; i < newList.Count(); i++)
+            {
+                if (!lst.Contains(newList[i]))
+                {
+                    lst.Add(newList[i]);
+                }
+            }
+        }
+
+
         private void Push_Symbols(ref List<TransitionFunction> tfs)
         {
             foreach(TransitionFunction tf in tfs)
@@ -898,6 +939,8 @@ namespace TuringMachineApp
                 }
             }
         }
+
+
 
         #endregion
     }
