@@ -45,7 +45,7 @@ namespace TuringMachineApp
 
         }
 
-        public void Flatten(ref string doc)
+        public void Flatten(ref string doc, bool leftSafety = false)
         {
             #region Setup
             TuringMachine tm = TM;
@@ -137,11 +137,20 @@ namespace TuringMachineApp
                      TapeLibrary).ToList();
             Console.WriteLine("RightSafety");
 
-            List<TransitionFunction> withBranchesRH = Include_Shift_Left_Safety_RightHanded(
+            List<TransitionFunction> withBranchesRH;
+            if (leftSafety)
+            {
+                withBranchesRH = Include_Shift_Left_Safety_RightHanded(
                  ref OutputTFs,
                  TapeLibrary).ToList();
-            Console.WriteLine("LeftSafety");
-            Console.WriteLine(withBranchesRH.Count());
+                Console.WriteLine("LeftSafety");
+                Console.WriteLine(withBranchesRH.Count());
+            }
+            else
+            {
+                withBranchesRH = new List<TransitionFunction>();
+            }
+            
             //UniqueAdd(ref withBranchesRH, withBranches);
 
             //UnbranchedFinalizedList = OutputTFs.Concat(withBranchesRH).ToList();
@@ -906,41 +915,54 @@ namespace TuringMachineApp
             {
                 for (int i = 0; i < tf.DomainHeadValues.Count; i++)
                 {
-                    if (tf.DomainHeadValues[i] == "#")
+                    if (tf.DomainHeadValues[i][0] == '#')
                     {
-                        tf.DomainHeadValues[i] = SymMap["#*"];
+
+                        tf.DomainHeadValues[i] = Put_In_Second(tf.DomainHeadValues[i]);
                     }
-                    else if (tf.DomainHeadValues[i] == "$")
+                    else if (tf.DomainHeadValues[i][0] == '$')
                     {
-                        tf.DomainHeadValues[i] = SymMap["$"];
+                        tf.DomainHeadValues[i] = Put_In_Second(tf.DomainHeadValues[i]);
                     }
-                    else if (tf.DomainHeadValues[i] == "R")
+                    else if (tf.DomainHeadValues[i][0] == 'R')
                     {
-                        tf.DomainHeadValues[i] = SymMap["R"];
+                        tf.DomainHeadValues[i] = Put_In_Second(tf.DomainHeadValues[i]);
                     }
 
                 }
 
                 for (int i = 0; i < tf.RangeHeadWrite.Count; i++)
                 {
-                    if (tf.RangeHeadWrite[i] == "#")
+                    if (tf.RangeHeadWrite[i][0] == '#')
                     {
-                        tf.RangeHeadWrite[i] = SymMap["#*"];
+                        tf.RangeHeadWrite[i] = Put_In_Second(tf.RangeHeadWrite[i]);
                     }
-                    else if (tf.RangeHeadWrite[i] == "$")
+                    else if (tf.RangeHeadWrite[i][0] == '$')
                     {
-                        tf.RangeHeadWrite[i] = SymMap["$"];
+                        tf.RangeHeadWrite[i] = Put_In_Second(tf.RangeHeadWrite[i]);
                     }
-                    else if (tf.RangeHeadWrite[i] == "R")
+                    else if (tf.RangeHeadWrite[i][0] == 'R')
                     {
-                        tf.RangeHeadWrite[i] = SymMap["R"];
+                        tf.RangeHeadWrite[i] = Put_In_Second(tf.RangeHeadWrite[i]);
                     }
 
                 }
             }
         }
 
-
+        private string Put_In_Second(string input, char insecond = '*')
+        {
+            string szOut = "";
+            if (input.Count() > 1)
+            {
+                szOut = input.Substring(0,1) + "*" + input.Substring(1);
+            }
+            else
+            {
+                szOut = input + "*";
+            }
+            return szOut;
+        }
 
         #endregion
     }
