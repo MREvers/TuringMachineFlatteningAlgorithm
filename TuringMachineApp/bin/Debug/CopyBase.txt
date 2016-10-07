@@ -1,0 +1,12 @@
+name: TwoLineCopy
+init: qCopy
+accept: qAccept
+
+qCopy,0,_
+qCopy,0,0,>,>
+
+qCopy,1,_
+qCopy,1,1,>,>
+
+qCopy,_,_
+qAccept,_,_,-,-

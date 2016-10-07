@@ -15,12 +15,12 @@ namespace TuringMachineApp
         static void Main(string[] args)
         {
             TuringMachine tm = new TuringMachine();
-            tm.GetInput("Input2.txt");
+            tm.GetInput("CopyLevel1.txt");
 
-            Flattener fl = new Flattener(tm);
+            Flattener fl = new Flattener(tm, 2);
 
             string doc = "";
-            tm.NullInput(ref doc, "~");
+            //tm.NullInput(ref doc, "~");
             fl.Flatten(ref doc);
             tm.FinalizeOutput(ref doc);
             File.WriteAllText("Output.txt", doc);

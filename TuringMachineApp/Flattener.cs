@@ -17,30 +17,39 @@ namespace TuringMachineApp
         static string NULL_SYMBOL = "~";
 
         readonly int NUM_TAPES;
+        readonly int ITERATION;
         TuringMachine TM;
 
+
         class SampleCollection
-        {   
+        {
+            int ITERATION;
+            public SampleCollection(int iter)
+            {
+                ITERATION = iter;
+            }
             public string this[string i]
             {
-                get { return i + "."; }
+                get { return i + "[" + ITERATION + "]"; }
             }
         }
 
-        SampleCollection SymMap = new SampleCollection();
+        SampleCollection SymMap;
 
-        public Flattener(TuringMachine tf)
+        public Flattener(TuringMachine tf, int iteration = 1)
         {
-
+            ITERATION = iteration;
+            SymMap = new SampleCollection(ITERATION);
             NUM_TAPES = tf.TransitionFunctions.First().DomainHeadValues.Count;
             TM = tf;
+
         }
 
         public void Flatten(ref string doc)
         {
             #region Setup
             TuringMachine tm = TM;
-
+            Push_Symbols(ref TM.TransitionFunctions);
             int NUM_TAPES = tm.TransitionFunctions.First().DomainHeadValues.Count;
             List<string> TapeLibrary = GetTapeLibrary();
             TapeLibrary.Add("#");
@@ -351,6 +360,12 @@ namespace TuringMachineApp
                     permState_MoveToNext.DefineRange(permState.Actual + NUM_TAPES, nonheader, SZSTAY);
                     yield return permState_MoveToNext;
                 }
+
+                // Include the end symbol so that if the last head was on #, we can continue.
+                TransitionFunction permState_MoveToNext2 = new TransitionFunction(
+                        permState.Actual, END_SYMBOL);
+                permState_MoveToNext2.DefineRange(permState.Actual + NUM_TAPES, END_SYMBOL, SZMOVE_LEFT);
+                yield return permState_MoveToNext2;
             }
         }
 
@@ -840,6 +855,46 @@ namespace TuringMachineApp
                 if (tf.DomainState.Actual == state.Actual)
                 {
                     yield return tf;
+                }
+            }
+        }
+
+        private void Push_Symbols(ref List<TransitionFunction> tfs)
+        {
+            foreach(TransitionFunction tf in tfs)
+            {
+                for (int i = 0; i < tf.DomainHeadValues.Count; i++)
+                {
+                    if (tf.DomainHeadValues[i] == "#")
+                    {
+                        tf.DomainHeadValues[i] = SymMap["#*"];
+                    }
+                    else if (tf.DomainHeadValues[i] == "$")
+                    {
+                        tf.DomainHeadValues[i] = SymMap["$"];
+                    }
+                    else if (tf.DomainHeadValues[i] == "R")
+                    {
+                        tf.DomainHeadValues[i] = SymMap["R"];
+                    }
+
+                }
+
+                for (int i = 0; i < tf.RangeHeadWrite.Count; i++)
+                {
+                    if (tf.RangeHeadWrite[i] == "#")
+                    {
+                        tf.RangeHeadWrite[i] = SymMap["#*"];
+                    }
+                    else if (tf.RangeHeadWrite[i] == "$")
+                    {
+                        tf.RangeHeadWrite[i] = SymMap["$"];
+                    }
+                    else if (tf.RangeHeadWrite[i] == "R")
+                    {
+                        tf.RangeHeadWrite[i] = SymMap["R"];
+                    }
+
                 }
             }
         }
