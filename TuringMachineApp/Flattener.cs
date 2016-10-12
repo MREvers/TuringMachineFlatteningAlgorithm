@@ -21,6 +21,9 @@ namespace TuringMachineApp
         TuringMachine TM;
 
 
+        /// <summary>
+        /// Used to map symbols to their equivalent symbol with a virtual header.
+        /// </summary>
         class SampleCollection
         {
             int ITERATION;
@@ -75,6 +78,7 @@ namespace TuringMachineApp
             foreach (State mkState in mkStates)
             {
 
+                //Build the states... These are really just used for counting.
                 IEnumerable<TransitionFunction> TransitionFunction_State_ = Get_Domain_States(mkState, tm.TransitionFunctions);
 
                 IEnumerable<State> undeterminedStates = Construct_Undetermined_States(mkState, TransitionFunction_State_)
@@ -90,7 +94,7 @@ namespace TuringMachineApp
                 IEnumerable<DeterminedState> determinedStates_ActorStates_0F_Complete =
                     Construct_Transition_Complete_States(determinedStates);
 
-                ////////
+                //Build the transition functions.
                 IEnumerable<TransitionFunction> tmp = new List<TransitionFunction>();
                 IEnumerable<TransitionFunction> undeterminedStates_TransitionFunctions_XthParm_MoveToNextI =
                     Sweep_Right_XthParm_MoveToNext(undeterminedStates, NonHeaderLibrary);
@@ -255,6 +259,21 @@ namespace TuringMachineApp
             }
         }
 
+        /// <summary>
+        /// Takes in a list of states that can be directly mapped to a mkTF.
+        /// i.e. TF(q1, 0, 1, _) has determined state q101_.
+        /// 
+        /// For each determined state input, this function outputs a state
+        ///  signifying that the Nth virtual tape needs to be executed for
+        ///  each virtual tape according to the mkTF
+        ///  
+        /// Input: q101_
+        /// Yields: q101_N, q101_(N-1), q101_(N-2)...
+        /// 
+        /// These are called "Nth_Tape_Actor_States"
+        /// </summary>
+        /// <param name="determinedStates"></param>
+        /// <returns></returns>
         private IEnumerable<DeterminedState>
             Construct_Transition_States_Primary(
             IEnumerable<DeterminedState> determinedStates)
@@ -276,6 +295,14 @@ namespace TuringMachineApp
             }
         }
 
+        /// <summary>
+        /// Takes in a list of determined states.
+        /// 
+        /// Input: q101_
+        /// Output: q101_F
+        /// </summary>
+        /// <param name="determinedStates"></param>
+        /// <returns></returns>
         private IEnumerable<DeterminedState>
             Construct_Transition_Complete_States(
             IEnumerable<DeterminedState> determinedStates)
@@ -292,6 +319,19 @@ namespace TuringMachineApp
             }
         }
 
+        /// <summary>
+        /// Takes in a list of actor states and includes
+        ///  a state indicating that that state is currently
+        ///  'active' in that the real head is moving the Nth
+        ///  virtual head.
+        ///  
+        /// Input: q101_2
+        /// Output: q101_2a
+        /// 
+        /// These are called Active "Nth_Tape_Actor_States" 
+        /// </summary>
+        /// <param name="determinedStates_ActorStates_Write"></param>
+        /// <returns></returns>
         private IEnumerable<DeterminedState>
             Construct_Transition_States_Secondary(
             IEnumerable<DeterminedState> determinedStates_ActorStates_Write)
@@ -309,7 +349,19 @@ namespace TuringMachineApp
             }
         }
 
-
+        /// <summary>
+        /// Starts from each undetermined state and builds all the necesary transition
+        ///  functions to get to the next.
+        /// 
+        /// Builds tfs to go
+        /// FROM: q1
+        /// TO: q1 and move right UNTIL a VIRTUAL head
+        /// 
+        /// DOES NOT ACTUALY TRANSITION TO 'q1X' see next function
+        /// </summary>
+        /// <param name="undeterminedStates"></param>
+        /// <param name="NonHeaderLibrary"></param>
+        /// <returns></returns>
         private IEnumerable<TransitionFunction>
         Sweep_Right_XthParm_MoveToNext(
                     IEnumerable<State> undeterminedStates,
@@ -329,40 +381,61 @@ namespace TuringMachineApp
 
         }
 
+        /// <summary>
+        /// Starts from each undetermined state and builds the transition from
+        /// 
+        /// FROM: q1
+        /// TO: q1X where X is the symbol under the next 'virtual' head.
+        /// 
+        /// X is limited by the mkTFs.
+        /// e.g. mkTFs (q1,0,1) and (q1,0,0), match q1o. So 1, and 0, are potential X's
+        /// </summary>
+        /// <param name="undeterminedStates"></param>
+        /// <returns></returns>
         private IEnumerable<TransitionFunction>
         Sweep_Right_XthParm_FoundNextChangeToNextState(
                     IEnumerable<State> undeterminedStates)
-                    {
-                        foreach (State permState in undeterminedStates)
-                        {
-                            // e.g. mkTFs (q1,0,1) and (q1,0,0), match q1o. So 1, and 0, are potential
-                            //  transition parameters.
-                            List<TransitionFunction> potentialPermStates = GetPossibleTFs(permState);
-                            foreach (TransitionFunction permMatchedTF in potentialPermStates)
-                            {
-                                string permMatchedPotentialChar = permMatchedTF.DomainHeadValues[permState.SubScripts.Count];
+         {
+            foreach (State permState in undeterminedStates)
+            {
+                  // e.g. mkTFs (q1,0,1) and (q1,0,0), match q1o. So 1, and 0, are potential
+                  //  transition parameters.
+                  List<TransitionFunction> potentialPermStates = GetPossibleTFs(permState);
+                  foreach (TransitionFunction permMatchedTF in potentialPermStates)
+                  {
+                     string permMatchedPotentialChar = permMatchedTF.DomainHeadValues[permState.SubScripts.Count];
 
-                                TransitionFunction permState_TransitToNext = new TransitionFunction(
-                                    permState.Actual, SymMap[permMatchedPotentialChar]);
-                                string szNextState = permState.Actual + SymMap[permMatchedPotentialChar];
-                                permState_TransitToNext.DefineRange(szNextState, SymMap[permMatchedPotentialChar], SZMOVE_RIGHT);
+                     TransitionFunction permState_TransitToNext = new TransitionFunction(
+                        permState.Actual, SymMap[permMatchedPotentialChar]);
+                     string szNextState = permState.Actual + SymMap[permMatchedPotentialChar];
+                     permState_TransitToNext.DefineRange(szNextState, SymMap[permMatchedPotentialChar], SZMOVE_RIGHT);
 
-                                yield return permState_TransitToNext;
+                     yield return permState_TransitToNext;
 
-                                // Branch on _
-                                if (permMatchedPotentialChar == "_")
-                                {
-                                    TransitionFunction permState_TransitToNextBranch = new TransitionFunction(
-                                        permState.Actual, SymMap["#"]);
-                                    string szNextState2 = permState.Actual + SymMap["_"];
-                                    permState_TransitToNextBranch.DefineRange(szNextState2, SymMap["#"], SZMOVE_RIGHT);
-                                    yield return permState_TransitToNextBranch;
-                                }
+                     // Branch on _
+                     if (permMatchedPotentialChar == "_")
+                     {
+                        TransitionFunction permState_TransitToNextBranch = new TransitionFunction(
+                              permState.Actual, SymMap["#"]);
+                        string szNextState2 = permState.Actual + SymMap["_"];
+                        permState_TransitToNextBranch.DefineRange(szNextState2, SymMap["#"], SZMOVE_RIGHT);
+                        yield return permState_TransitToNextBranch;
+                     }
 
-                            }
-                        }
-                    }
+                  }
+            }
+         }
 
+         /// <summary>
+         /// Takes all input determined state, and produces the transition function
+         ///  that transition to Nth_Tape_Action_States.
+         ///  
+         /// FROM: q... (determined state)
+         /// TO: q...N (Where N is the number of tapes)
+         /// </summary>
+         /// <param name="determinedStates"></param>
+         /// <param name="NonHeaderLibrary"></param>
+         /// <returns></returns>
         private IEnumerable<TransitionFunction>
         Sweep_Right_Complete_BeginActionStates(
                     IEnumerable<DeterminedState> determinedStates,
@@ -386,6 +459,16 @@ namespace TuringMachineApp
             }
         }
 
+        /// <summary>
+        /// For each of the input active Nth_Tape_Action_State, it produces the transition
+        /// functions required to move left until the next virtual head.
+        /// 
+        /// FROM: q...(K)
+        /// TO: q...(K) until the 'previous' virtual head.
+        /// </summary>
+        /// <param name="determinedStates_ActorStates_N_Write"></param>
+        /// <param name="NonHeaderLibrary"></param>
+        /// <returns></returns>
         private IEnumerable<TransitionFunction> 
         Sweep_Left_ActorState_N_MoveToPrevious(
                     IEnumerable<DeterminedState> determinedStates_ActorStates_N_Write,
@@ -408,7 +491,22 @@ namespace TuringMachineApp
             }
         }
 
-        // Needs to be cleaned up and flattened
+        /// <summary>
+        /// For each of the input active Nth_Tape_Action_State, this function produces
+        ///  the transition functions required to go from the Kth Virtual tape Action state
+        ///  to the ACTIVE Kth Virtual tape action state.
+        ///  
+        /// FROM: q...K
+        /// TO: q...K until the 'previous' virtual head.
+        /// 
+        /// AND
+        /// 
+        /// FROM: q...K
+        /// TO: q...Ka
+        /// 
+        /// </summary>
+        /// <param name="determinedStates"></param>
+        /// <returns></returns>
         private IEnumerable<TransitionFunction>
         Sweep_Left_ActorState_N_FoundPreviousWriteThenChangeToMoveHeadState(
                     IEnumerable<DeterminedState> determinedStates)
@@ -506,7 +604,16 @@ namespace TuringMachineApp
             }
         }
 
-        // Needs to be cleaned up and flattened
+        /// <summary>
+        /// For each of the input active Nth_Tape_Action_State, this function produces
+        ///  the transition functions required to go from the Kth Virtual tape active Action state
+        ///  to the previous (K-1)th ActionState.
+        ///  
+        /// FROM: q...Ka
+        /// TO: q...(K-1)
+        /// </summary>
+        /// <param name="determinedStates"></param>
+        /// <returns></returns>
         private IEnumerable<TransitionFunction>
         Sweep_Left_ActorState_N_MoveHeadThenChangeToNLess1MoveToPrevious(
                     IEnumerable<DeterminedState> determinedStates,
@@ -554,6 +661,17 @@ namespace TuringMachineApp
             }
         }
 
+        /// <summary>
+        /// For each complete determined state, this function produces
+        /// the transition functions that go from a completed determined
+        /// state to the NEXT mkState anologous.
+        /// 
+        /// FROM: qA...0F
+        /// TO: qB
+        /// </summary>
+        /// <param name="determinedStates_ActorStates_0F_Complete"></param>
+        /// <param name="TapeLibrary"></param>
+        /// <returns></returns>
         private IEnumerable<TransitionFunction> 
         Sweep_Left_Complete_ActorState_0F_ChangeToNext(
                     IEnumerable<DeterminedState> determinedStates_ActorStates_0F_Complete,
@@ -571,6 +689,15 @@ namespace TuringMachineApp
             }
         }
 
+        /// <summary>
+        /// Detects states and transition functions that could potentially
+        /// write passed the virtual tape 'end' and replaces those TFs and States
+        /// with a "Subroutine" to shift the remaining characters on the real tape
+        /// right, the return to the state that would've written passed then end.
+        /// </summary>
+        /// <param name="allTFS"></param>
+        /// <param name="TapeLibrary"></param>
+        /// <returns></returns>
         private List<TransitionFunction>
         Include_Shift_Right_Safety(
                     ref List<TransitionFunction> allTFS,
@@ -608,7 +735,7 @@ namespace TuringMachineApp
         }
 
         /// <summary>
-        /// 
+        /// THIS NEEDS WORK
         /// </summary>
         /// <param name="targetTFs">TFs to inc</param>
         /// <param name="allTFS"></param>
