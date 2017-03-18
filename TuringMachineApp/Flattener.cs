@@ -815,6 +815,18 @@ namespace TuringMachineApp
             return outputTFs;
         }
 
+        /// <summary>
+        /// Expands the simulated tape between two #'s. Adds a blank character, then returns
+        /// to the state that it was in.
+        /// Only branches off of states that could potentially lead to this situation. I.e.
+        /// if these states potentially arrived from a MOVE_RIGHT.
+        /// </summary>
+        /// <param name="branchState"></param>
+        /// <param name="returnState"></param>
+        /// <param name="putHead"></param>
+        /// <param name="branchStarterPairs"></param>
+        /// <param name="TapeLibrary"></param>
+        /// <returns></returns>
         private IEnumerable<TransitionFunction>
         Include_Shift_Right_On(
                     string branchState,

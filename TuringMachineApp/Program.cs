@@ -15,7 +15,7 @@ namespace TuringMachineApp
         static void Main(string[] args)
         {
             TuringMachine tm = new TuringMachine();
-            tm.GetInput("Output.txt");
+            tm.GetInput("Input.txt");
 
             Flattener fl = new Flattener(tm, 2);
 
@@ -23,7 +23,7 @@ namespace TuringMachineApp
             //tm.NullInput(ref doc, "~");
             fl.Flatten(ref doc);
             tm.FinalizeOutput(ref doc);
-            File.WriteAllText("CopyFlat2.txt", doc);
+            File.WriteAllText("Output.txt", doc);
             Console.WriteLine("Done");
             Console.ReadLine();
         }

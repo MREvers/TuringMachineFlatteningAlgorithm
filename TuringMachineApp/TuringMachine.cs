@@ -50,6 +50,11 @@ namespace TuringMachineApp
        
         public void GetInput(string fileName)
         {
+            if (!File.Exists(fileName))
+            {
+                return;
+            }
+
             System.IO.StreamReader file =
                  new System.IO.StreamReader(fileName);
 
