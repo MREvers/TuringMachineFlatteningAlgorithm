@@ -7,9 +7,6 @@ using System.IO;
 
 namespace TuringMachineApp
 {
-    // To DO
-    // NullReplaceSymbol
-    // Input Setup
     class Program
     {
         static void Main(string[] args)
@@ -17,12 +14,12 @@ namespace TuringMachineApp
             TuringMachine tm = new TuringMachine();
             tm.GetInput("Input.txt");
 
-            Flattener fl = new Flattener(tm, 2);
-
             string doc = "";
-            //tm.NullInput(ref doc, "~");
+            Flattener fl = new Flattener(tm);
             fl.Flatten(ref doc);
+
             tm.FinalizeOutput(ref doc);
+
             File.WriteAllText("Output.txt", doc);
             Console.WriteLine("Done");
             Console.ReadLine();

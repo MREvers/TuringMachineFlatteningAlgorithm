@@ -27,6 +27,14 @@ namespace TuringMachineApp
         class SampleCollection
         {
             int ITERATION;
+            /// <summary>
+            /// Iteration is the number of the virtual head.
+            /// If the flattening algorithm is being used for the first time,
+            /// the virtual heads should all be 1s (as in 1 level down).
+            /// Second Time -> 2s
+            /// etc.
+            /// </summary>
+            /// <param name="iter"></param>
             public SampleCollection(int iter)
             {
                 ITERATION = iter;
@@ -39,6 +47,14 @@ namespace TuringMachineApp
 
         SampleCollection SymMap;
 
+        /// <summary>
+        /// Iteration is the number of the virtual head.
+        /// If the flattening algorithm is being used for the first time,
+        /// the virtual heads should all be 1s (as in 1 level down).
+        /// Second Time -> 2s
+        /// etc.
+        /// </summary>
+        /// <param name="iter"></param>
         public Flattener(TuringMachine tf, int iteration = 1)
         {
             ITERATION = iteration;
