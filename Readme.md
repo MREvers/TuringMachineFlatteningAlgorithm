@@ -5,8 +5,8 @@ Expects to run in a directory with a file named "Input.txt". This file should co
 to the following style
 
 name: <string_name>
-init: <state>
-accept: <state>
+init: <Start_State>
+accept: [<End_State>, ...]
    
 
 // Then one or more of the following Transition Function Form.
@@ -14,3 +14,10 @@ accept: <state>
 <Range_State>, [<Range_Output>, ...], [<Head_Moves>, ...]
 
 The output will be placed in a file "Output.txt"
+
+Algorithm Overview.
+
+Takes a k-tape turing machine and simulates all tapes on a single tape.
+The machine sweeps right across the single tape machine to determine the state
+that each simulated tape is in. Once that is done, it sweeps left performing
+the changes on each of the simulated tapes.
